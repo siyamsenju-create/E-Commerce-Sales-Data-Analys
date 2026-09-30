@@ -6,8 +6,8 @@ to generate publication-quality, evidence-based figures answering specific
 analytical business questions.
 """
 
-import os
-from typing import List, Optional
+from pathlib import Path
+from typing import List, Optional, Union
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -31,7 +31,7 @@ PALETTE_DARK = "#1e293b"  # Slate dark
 
 
 def format_currency_k(value: float) -> str:
-    """Format numeric float to compact USD ($k)."""
+    """Format numeric float to compact USD ($k / $M)."""
     if abs(value) >= 1_000_000:
         return f"${value / 1_000_000:.2f}M"
     elif abs(value) >= 1_000:
@@ -41,7 +41,7 @@ def format_currency_k(value: float) -> str:
 
 def plot_sales_by_category(
     df: pd.DataFrame,
-    output_path: Optional[str] = "outputs/figures/01_sales_by_category.png",
+    output_path: Optional[Union[str, Path]] = "outputs/figures/01_sales_by_category.png",
 ) -> plt.Figure:
     """
     Chart 1: Total Revenue by Product Category.
@@ -65,7 +65,6 @@ def plot_sales_by_category(
         width=0.55,
     )
 
-    # Data labels with value and percentage share
     for bar, pct in zip(bars, cat_sales["share_pct"]):
         y_val = bar.get_height()
         ax.annotate(
@@ -80,7 +79,9 @@ def plot_sales_by_category(
             color=PALETTE_DARK,
         )
 
-    ax.set_title("Total Revenue by Product Category", fontsize=13, fontweight="bold", pad=15)
+    ax.set_title(
+        "Total Revenue by Product Category", fontsize=13, fontweight="bold", pad=15
+    )
     ax.set_xlabel("Product Category", fontsize=11, labelpad=8)
     ax.set_ylabel("Total Gross Sales (USD)", fontsize=11, labelpad=8)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format_currency_k(x)))
@@ -88,14 +89,15 @@ def plot_sales_by_category(
 
     plt.tight_layout()
     if output_path:
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        plt.savefig(output_path, dpi=300)
+        out_p = Path(output_path)
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(out_p, dpi=300)
     return fig
 
 
 def plot_profit_by_category(
     df: pd.DataFrame,
-    output_path: Optional[str] = "outputs/figures/02_profit_by_category.png",
+    output_path: Optional[Union[str, Path]] = "outputs/figures/02_profit_by_category.png",
 ) -> plt.Figure:
     """
     Chart 2: Total Profit by Product Category.
@@ -133,7 +135,9 @@ def plot_profit_by_category(
             color=PALETTE_DARK,
         )
 
-    ax.set_title("Total Net Profit by Product Category", fontsize=13, fontweight="bold", pad=15)
+    ax.set_title(
+        "Total Net Profit by Product Category", fontsize=13, fontweight="bold", pad=15
+    )
     ax.set_xlabel("Product Category", fontsize=11, labelpad=8)
     ax.set_ylabel("Total Net Profit (USD)", fontsize=11, labelpad=8)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format_currency_k(x)))
@@ -141,14 +145,15 @@ def plot_profit_by_category(
 
     plt.tight_layout()
     if output_path:
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        plt.savefig(output_path, dpi=300)
+        out_p = Path(output_path)
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(out_p, dpi=300)
     return fig
 
 
 def plot_sales_by_region(
     df: pd.DataFrame,
-    output_path: Optional[str] = "outputs/figures/03_sales_by_region.png",
+    output_path: Optional[Union[str, Path]] = "outputs/figures/03_sales_by_region.png",
 ) -> plt.Figure:
     """
     Chart 3: Regional Sales Distribution.
@@ -186,7 +191,9 @@ def plot_sales_by_region(
             color=PALETTE_DARK,
         )
 
-    ax.set_title("Total Revenue by Geographic Region", fontsize=13, fontweight="bold", pad=15)
+    ax.set_title(
+        "Total Revenue by Geographic Region", fontsize=13, fontweight="bold", pad=15
+    )
     ax.set_xlabel("Geographic Region", fontsize=11, labelpad=8)
     ax.set_ylabel("Total Gross Sales (USD)", fontsize=11, labelpad=8)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format_currency_k(x)))
@@ -194,20 +201,20 @@ def plot_sales_by_region(
 
     plt.tight_layout()
     if output_path:
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        plt.savefig(output_path, dpi=300)
+        out_p = Path(output_path)
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(out_p, dpi=300)
     return fig
 
 
 def plot_monthly_sales_trend(
     df: pd.DataFrame,
-    output_path: Optional[str] = "outputs/figures/04_monthly_sales_trend.png",
+    output_path: Optional[Union[str, Path]] = "outputs/figures/04_monthly_sales_trend.png",
 ) -> plt.Figure:
     """
     Chart 4: Chronological Monthly Sales Trend (Multi-Year Trajectory).
     Question: How does revenue change over time?
     """
-    # Group by chronological order_year_month
     monthly = (
         df.groupby(["order_year_month", "order_year", "order_month"])["sales"]
         .sum()
@@ -226,7 +233,7 @@ def plot_monthly_sales_trend(
         label="Monthly Revenue",
     )
 
-    # Add 3-month rolling average trend line
+    # 3-month rolling average
     rolling_3m = monthly["sales"].rolling(window=3, min_periods=1).mean()
     ax.plot(
         range(len(monthly)),
@@ -237,13 +244,17 @@ def plot_monthly_sales_trend(
         label="3-Month Moving Average",
     )
 
-    # Set x-ticks at quarterly intervals
     tick_indices = list(range(0, len(monthly), 3))
     tick_labels = [monthly.iloc[i]["order_year_month"] for i in tick_indices]
     ax.set_xticks(tick_indices)
     ax.set_xticklabels(tick_labels, rotation=45, ha="right", fontsize=9)
 
-    ax.set_title("Chronological Monthly Sales Trend (2014 – 2017)", fontsize=13, fontweight="bold", pad=15)
+    ax.set_title(
+        "Chronological Monthly Sales Trend (2014 – 2017)",
+        fontsize=13,
+        fontweight="bold",
+        pad=15,
+    )
     ax.set_xlabel("Order Year-Month", fontsize=11, labelpad=8)
     ax.set_ylabel("Monthly Sales (USD)", fontsize=11, labelpad=8)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format_currency_k(x)))
@@ -251,14 +262,15 @@ def plot_monthly_sales_trend(
 
     plt.tight_layout()
     if output_path:
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        plt.savefig(output_path, dpi=300)
+        out_p = Path(output_path)
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(out_p, dpi=300)
     return fig
 
 
 def plot_sales_distribution(
     df: pd.DataFrame,
-    output_path: Optional[str] = "outputs/figures/05_sales_distribution.png",
+    output_path: Optional[Union[str, Path]] = "outputs/figures/05_sales_distribution.png",
 ) -> plt.Figure:
     """
     Chart 5: Sales Distribution (Dual-View: Raw Linear Scale & Log10 Scale).
@@ -278,15 +290,29 @@ def plot_sales_distribution(
     mean_val = df["sales"].mean()
     median_val = df["sales"].median()
 
-    ax1.axvline(mean_val, color=PALETTE_DANGER, linestyle="--", linewidth=1.5, label=f"Mean: ${mean_val:.2f}")
-    ax1.axvline(median_val, color=PALETTE_SECONDARY, linestyle="-", linewidth=1.5, label=f"Median: ${median_val:.2f}")
-    ax1.set_title("Line-Item Sales Distribution (Linear Scale)", fontsize=11, fontweight="bold")
+    ax1.axvline(
+        mean_val,
+        color=PALETTE_DANGER,
+        linestyle="--",
+        linewidth=1.5,
+        label=f"Mean: ${mean_val:.2f}",
+    )
+    ax1.axvline(
+        median_val,
+        color=PALETTE_SECONDARY,
+        linestyle="-",
+        linewidth=1.5,
+        label=f"Median: ${median_val:.2f}",
+    )
+    ax1.set_title(
+        "Line-Item Sales Distribution (Linear Scale)", fontsize=11, fontweight="bold"
+    )
     ax1.set_xlabel("Sales (USD)", fontsize=10)
     ax1.set_ylabel("Frequency (Order Lines)", fontsize=10)
-    ax1.set_xlim(0, 3000)  # Zoomed into majority density while highlighting extreme tail
+    ax1.set_xlim(0, 3000)
     ax1.legend(loc="upper right")
 
-    # Panel 2: Log10 transformed distribution for ML normality visualization
+    # Panel 2: Log10 transformed distribution
     log_sales = np.log10(df["sales"])
     sns.histplot(
         log_sales,
@@ -300,18 +326,24 @@ def plot_sales_distribution(
     ax2.set_xlabel("Log10(Sales)", fontsize=10)
     ax2.set_ylabel("Density / Frequency", fontsize=10)
 
-    plt.suptitle("Line-Item Sales Distribution & Skewness Analysis", fontsize=13, fontweight="bold", y=1.02)
+    plt.suptitle(
+        "Line-Item Sales Distribution & Skewness Analysis",
+        fontsize=13,
+        fontweight="bold",
+        y=1.02,
+    )
     plt.tight_layout()
 
     if output_path:
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        plt.savefig(output_path, dpi=300)
+        out_p = Path(output_path)
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(out_p, dpi=300)
     return fig
 
 
 def plot_top_products_by_revenue(
     df: pd.DataFrame,
-    output_path: Optional[str] = "outputs/figures/06_top_products_by_revenue.png",
+    output_path: Optional[Union[str, Path]] = "outputs/figures/06_top_products_by_revenue.png",
     top_n: int = 10,
 ) -> plt.Figure:
     """
@@ -322,11 +354,10 @@ def plot_top_products_by_revenue(
         df.groupby(["product_name", "category"])["sales"]
         .sum()
         .reset_index()
-        .sort_values(by="sales", ascending=True)  # Ascending for horizontal bar chart
+        .sort_values(by="sales", ascending=True)
         .tail(top_n)
     )
 
-    # Shorten excessively long product titles for clean visualization
     top_prods["display_name"] = top_prods["product_name"].apply(
         lambda x: x[:42] + "..." if len(x) > 45 else x
     )
@@ -354,7 +385,9 @@ def plot_top_products_by_revenue(
             color=PALETTE_DARK,
         )
 
-    ax.set_title(f"Top {top_n} Products by Revenue", fontsize=13, fontweight="bold", pad=15)
+    ax.set_title(
+        f"Top {top_n} Products by Revenue", fontsize=13, fontweight="bold", pad=15
+    )
     ax.set_xlabel("Total Gross Revenue (USD)", fontsize=11, labelpad=8)
     ax.set_ylabel("Product Name", fontsize=11, labelpad=8)
     ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format_currency_k(x)))
@@ -362,14 +395,15 @@ def plot_top_products_by_revenue(
 
     plt.tight_layout()
     if output_path:
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        plt.savefig(output_path, dpi=300)
+        out_p = Path(output_path)
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(out_p, dpi=300)
     return fig
 
 
 def plot_quantity_vs_sales(
     df: pd.DataFrame,
-    output_path: Optional[str] = "outputs/figures/07_quantity_vs_sales.png",
+    output_path: Optional[Union[str, Path]] = "outputs/figures/07_quantity_vs_sales.png",
 ) -> plt.Figure:
     """
     Chart 7: Scatter Plot of Order Line Quantity vs. Sales.
@@ -387,7 +421,6 @@ def plot_quantity_vs_sales(
         s=25,
     )
 
-    # Linear trendline
     z = np.polyfit(df["quantity"], df["sales"], 1)
     p = np.poly1d(z)
     x_range = np.linspace(df["quantity"].min(), df["quantity"].max(), 100)
@@ -397,10 +430,12 @@ def plot_quantity_vs_sales(
         color=PALETTE_DANGER,
         linestyle="--",
         linewidth=2,
-        label=f"Trendline (Pearson r = +{corr_val:.2f})",
+        label=f"Linear Trendline (Pearson r = +{corr_val:.2f})",
     )
 
-    ax.set_title("Order-Line Quantity vs. Gross Sales", fontsize=13, fontweight="bold", pad=15)
+    ax.set_title(
+        "Order-Line Quantity vs. Gross Sales", fontsize=13, fontweight="bold", pad=15
+    )
     ax.set_xlabel("Quantity (Units per Line Item)", fontsize=11, labelpad=8)
     ax.set_ylabel("Sales (USD)", fontsize=11, labelpad=8)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format_currency_k(x)))
@@ -408,14 +443,15 @@ def plot_quantity_vs_sales(
 
     plt.tight_layout()
     if output_path:
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        plt.savefig(output_path, dpi=300)
+        out_p = Path(output_path)
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(out_p, dpi=300)
     return fig
 
 
 def plot_correlation_heatmap(
     df: pd.DataFrame,
-    output_path: Optional[str] = "outputs/figures/08_correlation_heatmap.png",
+    output_path: Optional[Union[str, Path]] = "outputs/figures/08_correlation_heatmap.png",
     numeric_columns: Optional[List[str]] = None,
 ) -> plt.Figure:
     """
@@ -423,7 +459,11 @@ def plot_correlation_heatmap(
     Question: What linear relationships exist among numerical variables?
     """
     if numeric_columns is None:
-        numeric_columns = ["sales", "quantity", "discount", "profit", "unit_price"]
+        numeric_columns = [
+            col
+            for col in ["sales", "quantity", "discount", "profit", "unit_price"]
+            if col in df.columns
+        ]
 
     corr_matrix = df[numeric_columns].corr()
 
@@ -441,18 +481,24 @@ def plot_correlation_heatmap(
         ax=ax,
     )
 
-    ax.set_title("Correlation Heatmap of Numerical Features", fontsize=13, fontweight="bold", pad=15)
+    ax.set_title(
+        "Correlation Heatmap of Numerical Features",
+        fontsize=13,
+        fontweight="bold",
+        pad=15,
+    )
     plt.tight_layout()
 
     if output_path:
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        plt.savefig(output_path, dpi=300)
+        out_p = Path(output_path)
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(out_p, dpi=300)
     return fig
 
 
 def plot_discount_profitability(
     df: pd.DataFrame,
-    output_path: Optional[str] = "outputs/figures/09_discount_vs_profitability.png",
+    output_path: Optional[Union[str, Path]] = "outputs/figures/09_discount_vs_profitability.png",
 ) -> plt.Figure:
     """
     Chart 9: Aggregate Profitability by Discount Level.
@@ -472,7 +518,10 @@ def plot_discount_profitability(
     ) * 100
 
     fig, ax = plt.subplots(figsize=(9, 5.5))
-    colors = [PALETTE_SECONDARY if p >= 0 else PALETTE_DANGER for p in disc_summary["total_profit"]]
+    colors = [
+        PALETTE_SECONDARY if p >= 0 else PALETTE_DANGER
+        for p in disc_summary["total_profit"]
+    ]
 
     bars = ax.bar(
         [f"{int(d*100)}%" for d in disc_summary["discount"]],
@@ -499,25 +548,30 @@ def plot_discount_profitability(
             color=PALETTE_DARK,
         )
 
-    ax.set_title("Aggregate Net Profit & Margin by Discount Tier", fontsize=13, fontweight="bold", pad=15)
+    ax.set_title(
+        "Aggregate Net Profit & Margin by Discount Tier",
+        fontsize=13,
+        fontweight="bold",
+        pad=15,
+    )
     ax.set_xlabel("Applied Discount Level (%)", fontsize=11, labelpad=8)
     ax.set_ylabel("Total Net Profit (USD)", fontsize=11, labelpad=8)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format_currency_k(x)))
 
-    # Extend ylim to accommodate labels
     y_min, y_max = ax.get_ylim()
     ax.set_ylim(y_min * 1.25, y_max * 1.25)
 
     plt.tight_layout()
     if output_path:
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        plt.savefig(output_path, dpi=300)
+        out_p = Path(output_path)
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(out_p, dpi=300)
     return fig
 
 
 def plot_category_profit_margin(
     df: pd.DataFrame,
-    output_path: Optional[str] = "outputs/figures/10_profit_margin_by_category.png",
+    output_path: Optional[Union[str, Path]] = "outputs/figures/10_profit_margin_by_category.png",
 ) -> plt.Figure:
     """
     Chart 10: Profit Margin Percentage by Product Category.
@@ -559,33 +613,41 @@ def plot_category_profit_margin(
             color=PALETTE_DARK,
         )
 
-    ax.set_title("Net Profit Margin (%) by Product Category", fontsize=13, fontweight="bold", pad=15)
+    ax.set_title(
+        "Net Profit Margin (%) by Product Category",
+        fontsize=13,
+        fontweight="bold",
+        pad=15,
+    )
     ax.set_xlabel("Product Category", fontsize=11, labelpad=8)
     ax.set_ylabel("Profit Margin (%)", fontsize=11, labelpad=8)
     ax.set_ylim(0, cat_margin["profit_margin_pct"].max() * 1.25)
 
     plt.tight_layout()
     if output_path:
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        plt.savefig(output_path, dpi=300)
+        out_p = Path(output_path)
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(out_p, dpi=300)
     return fig
 
 
 def generate_all_visualizations(
-    df: pd.DataFrame, output_dir: str = "outputs/figures"
-) -> List[str]:
+    df: pd.DataFrame,
+    output_dir: Union[str, Path] = "outputs/figures",
+) -> List[Path]:
     """
-    Generate and save all 10 project visualizations.
+    Generate and save all 10 project visualizations at 300 DPI.
 
     Args:
         df: Cleaned DataFrame.
         output_dir: Directory path where PNG charts will be saved.
 
     Returns:
-        List[str]: List of paths to saved PNG figures.
+        List[Path]: List of Path objects to saved PNG figures.
     """
-    os.makedirs(output_dir, exist_ok=True)
-    generated_files = []
+    out_dir = Path(output_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    generated_files: List[Path] = []
 
     plots = [
         ("01_sales_by_category.png", plot_sales_by_category),
@@ -601,7 +663,7 @@ def generate_all_visualizations(
     ]
 
     for fname, func in plots:
-        fpath = os.path.join(output_dir, fname)
+        fpath = out_dir / fname
         func(df, output_path=fpath)
         plt.close("all")
         generated_files.append(fpath)
